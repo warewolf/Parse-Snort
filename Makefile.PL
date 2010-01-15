@@ -10,7 +10,7 @@ WriteMakefile(
     PL_FILES            => {},
     PREREQ_PM => {
         'Test::More' => 0,
-        'Class::Accessor' => 0,
+        'Class::Accessor::Chained' => 0,
         'List::Util' => 0,
         'Carp' => 0,
     },

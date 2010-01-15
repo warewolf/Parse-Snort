@@ -2,9 +2,13 @@ package Parse::Snort;
 
 use strict;
 use warnings;
-use base qw(Class::Accessor);
+use base qw(Class::Accessor::Chained);
 use List::Util qw(first);
 use Carp qw(carp);
+
+our $VERSION = '0.05';
+
+# POD: name, version, synopsis {{{
 
 =head1 NAME
 
@@ -12,7 +16,7 @@ Parse::Snort - Parse and create Snort rules
 
 =head1 VERSION
 
-Version 0.01
+Version 0.05
 
 =head1 SYNOPSIS
 
@@ -43,13 +47,43 @@ Version 0.01
 
 =cut 
 
-our $VERSION                = '0.01';
-our @RULE_ACTIONS           = qw/ alert pass drop sdrop log /;
-our @RULE_ELEMENTS_REQUIRED =
-  qw/ action proto src src_port direction dst dst_port /;
-our @RULE_ELEMENTS = ( @RULE_ELEMENTS_REQUIRED, 'opts' );
+# }}}
 
-__PACKAGE__->mk_accessors(@RULE_ELEMENTS);
+# global variables {{{
+
+# largely unused at the moment
+our @RULE_ACTIONS           = qw/ alert pass drop sdrop log activate dynamic reject /;
+
+# used for making accessors
+our @RULE_ELEMENTS_REQUIRED = qw/ action proto src src_port direction dst dst_port /;
+our @RULE_ELEMENTS = ( @RULE_ELEMENTS_REQUIRED, 'opts' );
+__PACKAGE__->mk_accessors(@RULE_ELEMENTS); 
+
+# if this list is wrong it will only touch the /first/ instance of that option, with a side effect of leaving the remaining instances alone.
+# you can still reach all the values via the opts() method.
+our @UNIQUE_OPTIONS         = qw/ sid gid rev msg classtype metadata priority flow fragoffset ttl tos id ipopts fragbits dsize flags seq ack window itype icode icmp_id icmp_seq rpc ip_proto sameip stream_size logto session resp react tag detection_filter threshold /;
+
+# regex for matching rule options.
+# this turns: 'msg:"mtfnpy"; content:"mtfnpy";'
+# into: ['msg:"mtfnpy";', 'content:"mtfnpy";']
+# it later gets split on the colon.
+
+my $option_match = qr/
+  \s*   # eat whitespace (for between options)
+  (     # capture
+    (?: # grouping
+      \\.   # match escapes (eat 2 chars)
+      |     # or
+      [^;]  # anything but a semicolon (1 char)
+    )+  # end grouping
+  )     # stop capturing
+  ;     # match the end of the option
+  \s*   # eat whitespace (for between options)
+/x;
+
+# }}}
+
+# POD: instantion methods {{{
 
 =head1 METHODS
 
@@ -90,29 +124,32 @@ This function will create a new C<Parse::Snort> object.  You may pass nothing, a
 
 =cut
 
-sub new {
+# }}}
+
+sub new { # {{{
     my ( $class, $fields ) = @_;
-    #my ($class) = ref $proto || $proto;
 
     my $self = {};
 
     # make a copy of $fields.
     bless $self, $class;
-    $self->_init($fields);
-}
+    return $self->_init($fields);
+} # }}}
 
-sub _init {
+sub _init { # {{{
     my ( $self, $data ) = @_;
 
     if ( ref($data) eq "HASH" ) {
         while ( my ( $method, $val ) = each %$data ) {
-            $self->$method($val);
+            $self->$method($val) if (ref($self->can($method)));
         }
     } elsif ( defined($data) ) {
         $self->parse($data);
     }
     return $self;
-}
+} # }}}
+
+# POD: parse method {{{
 
 =item B<parse($rule_string)>
 
@@ -121,17 +158,26 @@ The parse method can be used to parse a snort rule string after new() has been c
   $rule_object->parse($rule_string);
 
 =cut
+# }}}
 
-sub parse {
+sub parse { # {{{
     my ( $self, $rule ) = @_;
 
-    my @values = split( m/ /, $rule, scalar @RULE_ELEMENTS );    # no critic
+    # nuke any potential extra whitespace
+    $rule =~ s/^\s+//;
+    $rule =~ s/\s+$//;
+
+    # 20090823 RGH: m/\s+/ instead of m/ /; bug reported by Leon Ward
+    my @values = split( m/\s+/, $rule, scalar @RULE_ELEMENTS );    # no critic
+    carp(sprintf("parse came up short, expecting %d elements, got %d",scalar @RULE_ELEMENTS,scalar @values)) if (scalar @values < scalar @RULE_ELEMENTS);
 
     for my $i ( 0 .. $#RULE_ELEMENTS ) {
-        my $meth = $RULE_ELEMENTS[$i];
-        $self->$meth( $values[$i] );
+        my $method = $RULE_ELEMENTS[$i];
+        $self->$method( $values[$i] );
     }
-}
+} # }}}
+
+# POD: accessor methods {{{
 
 =back
 
@@ -159,7 +205,7 @@ The source port for the rule.  Generally a static port, or a contigious range of
 
 =item B<direction> 
 
-The direction of the rule.  One of the following: C<->> C<<>> or C<<->.
+The direction of the rule.  One of the following: C<< -> >> C<< <> >> or C<< <- >>.
 
 =item B<dst> 
 
@@ -195,7 +241,9 @@ The parenthesis surround the series of C<key:value;> pairs are optional.
 
 =cut
 
-sub opts {
+# }}}
+
+sub opts { # {{{
     my ( $self, $args ) = @_;
 
     if ($args) {
@@ -210,12 +258,12 @@ sub opts {
 
             # string interface
             # 'depth:50; offset:0; content;"perl\;6"; nocase;'
+
+            # if we got passed a raw opts string with parens, remove them.
             if ( $args =~ m/^\(/ ) {
                 $args =~ s/^\((.+)\)$/$1/;
             }
-            my @set =
-              map { [ split( m/:/, $_, 2 ) ] }
-              $args =~ m/\s*((?:\\.|[^;])+)(?:;|$)\s*/g;
+            my @set = map { [ split( m/:/, $_, 2 ) ] } $args =~ m/$option_match/g;
             $self->set( 'opts', @set );
         }
     } else {
@@ -223,60 +271,66 @@ sub opts {
         # getting
         return $self->get('opts');
     }
-}
+} # }}}
 
-sub _opt_accessor {
+sub _opt_accessor { # {{{
     my $opt = shift;
+
     return sub {
-        my ( $self, $val ) = @_;
+      my ( $self, $val ) = @_;
 
-        # find the (hopefully) pre-existing option in the opts AoA
-        my $element;
-
-        #if ( defined $self->get('opts') and ref $self->get('opts') ) {
-        if ( defined $self->get('opts') ) {
-            $element = first { $_->[0] eq $opt } @{ $self->get('opts') };
-        }
-
-        if ( ref($element) ) {
-
-            # preexisting
-            if ($val) { $element->[1] = $val; }
-            else { return $element->[1]; }
-        } else {
-
-            # doesn't exist
-            if ($val) {
-
-                # setting
-                if ( scalar $self->get('opts') ) {
-
-                    # other opts exist, tack it on the end
-                    $self->set(
-                        'opts',
-                        @{ $self->get('opts') },
-                        [ $opt, $val ]
-                    );
-                } else {
-
-                    # blank slate, create the AoA
-                    $self->set( 'opts', [ [ $opt, $val ] ] );
-                }
-            } else {
-
-                # getting
-                return;
-            }
-        }
+      # find the (hopefully) pre-existing option in the opts AoA
+      my $element;
+      if ( defined $self->get('opts') ) {
+          $element = first { $_->[0] eq $opt } @{ $self->get('opts') };
       }
+
+      if ( ref($element) ) {
+
+          # preexisting
+          if ($val)
+          { $element->[1] = $val; } # setting
+          else
+          { return $element->[1]; } # getting
+
+      } else {
+
+          # doesn't exist
+          if ($val) {
+
+              # setting
+              if ( scalar $self->get('opts') ) {
+
+                  # other opts exist, tack it on the end
+                  $self->set(
+                      'opts',
+                      @{ $self->get('opts') },
+                      [ $opt, $val ]
+                  );
+
+              } else {
+
+                  # blank slate, create the AoA
+                  $self->set( 'opts', [ [ $opt, $val ] ] );
+              }
+
+          } else {
+
+              # getting (empty value)
+              return;
+          }
+      }
+   }
+} # }}}
+
+# generate the helper accessors that poke around inside unique rule options {{{
+{
+  no strict qw(refs); # shaddup!
+  map { *$_ = _opt_accessor($_) } @UNIQUE_OPTIONS;
 }
+# }}}
 
-# helper accessors that poke around inside rule options
-
-*sid       = _opt_accessor('sid');
-*rev       = _opt_accessor('rev');
-*msg       = _opt_accessor('msg');
-*classtype = _opt_accessor('classtype');
+# POD: helper methods for options {{{
 
 =back
 
@@ -284,9 +338,9 @@ sub _opt_accessor {
 
 =over 4
 
-=item B<sid>, B<rev>, B<msg>, B<classtype> 
+=item sid gid rev msg classtype metadata priority flow fragoffset ttl tos id ipopts fragbits dsize flags seq ack window itype icode icmp_id icmp_seq rpc ip_proto sameip stream_size logto session resp react tag detection_filter threshold 
 
-The C<sid>, C<rev>, C<msg>, and C<classtype> methods allow direct access to the rule option of the same name
+These methods allow direct access to the rule option of the same name
 
   my $sid = $rule_obj->sid(); # reads the sid of the rule
   $rule_obj->sid($sid); # sets the sid of the rule
@@ -298,13 +352,17 @@ The C<references> method returns an array reference of the references in the rul
 
 =cut 
 
-sub references {
+# }}}
+
+sub references { # {{{
     my ($self) = shift;
     my @references =
       map { [ split( m/,/, $_->[1], 2 ) ] }
       grep { $_->[0] eq "reference" } @{ $self->get('opts') };
     return \@references;
-}
+} # }}}
+
+# POD: as_string method {{{
 
 =item B<as_string>
 
@@ -312,7 +370,9 @@ The C<as_string> method returns a string that matches the normal Snort rule form
 
 =cut
 
-sub as_string {
+# }}}
+
+sub as_string { # {{{
     my $self = shift;
     my $ret;
     my @missing;
@@ -328,9 +388,12 @@ sub as_string {
     { $ret .= sprintf( " (%s)", join( " ", map { $_->[1] ? "$_->[0]:$_->[1];" : "$_->[0];" } @{ $self->get('opts') } )); }
 
     return ! scalar @missing ? $ret : "";
-}
+} # }}}
 
-=back
+
+# POD: author, bugs, support, dependencies, ack, license {{{
+
+=back 
 
 =head1 AUTHOR
 
@@ -387,5 +450,7 @@ This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
 =cut
+
+# }}}
 
 !!'mtfnpy!!';
