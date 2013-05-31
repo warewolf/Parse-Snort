@@ -126,7 +126,7 @@ is($obj_2->as_string,undef,"mostly blank rule as_string returns undef");
 $obj_2->classtype("attack");
 is($obj_2->sid(1),1,"blank rule sid set to 1");
 
-$obj_3 = Parse::Snort::new('Parse::Snort');
+my $obj_3 = Parse::Snort::new('Parse::Snort');
 isa_ok($obj_3,'Parse::Snort');
 
 

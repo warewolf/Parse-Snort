@@ -2,7 +2,7 @@ NAME
     Parse::Snort - Parse and create Snort rules
 
 VERSION
-    Version 0.01
+    Version 0.05
 
 SYNOPSIS
         use Parse::Snort;
@@ -31,17 +31,32 @@ SYNOPSIS
     );
 
 METHODS
-    The following methods can be used to read or modify parts of a rule.
+    These are the object methods that can be used to read or modify any part
+    of a Snort rule. Please note: None of these methods provide any sort of
+    input validation to make sure that the rule makes sense, or can be
+    parsed at all by Snort.
 
-    new($rule_string), new($rule_element_ref)
-        This function will create a new "Parse::Snort" object. You may pass
-        nothing, a string containing a properly formatted Snort rule, or a
-        gash reference of rule elements and options.
+    new ()
+        Create a new "Parse::Snort" object, and return it. There are a
+        couple of options when creating the object:
 
-        $rule_string
+        new ( )
+            Create an unpopulated object, that can be filled in using the
+            individual rule element methods, or can be populated with the
+            parse method.
+
+        new ( $rule_string )
+            Create an object based on a plain text Snort rule, all on one
+            line. This module doesn't understand the UNIX style line
+            continuations (a backslash at the end of the line) that Snort
+            does.
+
               $rule_string = 'alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"perl 6 download detected\; may the world rejoice!";depth:150; offset:0; content:"perl-6.0.0"; nocase;)'
 
-        $rule_element_hashref
+        new ( $rule_element_hashref )
+            Create an object baesd on a prepared hash reference similar to
+            the internal strucutre of the Parse::Snort object.
+
               $rule_element_hashref = {
                 action => 'alert',
                 proto => 'tcp',
@@ -49,25 +64,34 @@ METHODS
                 direction => '->',
                 dst => '$HOME_NET', dst_port => 'any',
                 opts => [
-                    [ 'msg' => ':"perl 6 download detected\; may the world rejoice!"' ],
+                    [ 'msg' => '"perl 6 download detected\; may the world rejoice!"' ],
                     [ 'depth' => 150 ],
                     [ 'offset' => 0 ].
                     [ 'content' => 'perl-6.0.0' ],
                     [ 'nocase' ],
                 ],
-      
-              };
+                  
+  };
 
-    parse($rule_string)
-        The parse method can be used to parse a snort rule string after
-        new() has been called. The rule object will be populated with the
-        parsed version of $rule_string, overwriting any previously defined
-        values in the object.
+    parse( $rule_string )
+        The parse method is what interprets a plain text rule, and populates
+        the rule object. Beacuse this module does not support the UNIX style
+        line-continuations (backslash at the end of a line) the rule must be
+        all on one line, otherwise the parse will fail in unpredictably
+        interesting and confusing ways. The parse method tries to interpret
+        the rule from left to right, calling the individual accessor methods
+        for each rule element. This will overwrite the contents of the
+        object (if any), so if you want to parse multiple rules at once, you
+        will need multiple objects.
 
-          $rule_object->parse($rule_string);
+          $rule->parse($rule_string);
 
-  METHODS FOR RULE ELEMENTS
-    The following methods read or modify the various rule elements.
+  METHODS FOR ACCESSING RULE ELEMENTS
+    You can access the core parts of a rule (action, protocol, source IP,
+    etc) with the method of their name. These are read/write Class::Accessor
+    accessors. If you want to read the value, don't pass an argument. If you
+    want to set the value, pass in the new value. In either case it returns
+    the current value, or undef if the value has not been set yet.
 
     action
         The rule action. Generally one of the following: "alert", "pass",
@@ -92,14 +116,15 @@ METHODS
     dst_port
         The destination port for the rule. Same format as "src"
 
-    opts($opts_array_ref), opts($opts_string)
+    opts ( $opts_array_ref )
+    opts ( $opts_string )
         The opts method can be used to read existing options of a parsed
         rule, or set them. The method takes two forms of arguments, either
         an Array of Arrays, or a rule string.
 
         $opts_array_ref
               $opts_array_ref = [
-                   [ 'msg' => ':"perl 6 download detected\; may the world rejoice!"' ],
+                   [ 'msg' => '"perl 6 download detected\; may the world rejoice!"' ],
                    [ 'depth' => 150 ],
                    [ 'offset' => 0 ].
                    [ 'content' => 'perl-6.0.0' ],
@@ -112,20 +137,34 @@ METHODS
             The parenthesis surround the series of "key:value;" pairs are
             optional.
 
-  HELPER METHODS FOR OPTIONS
-    sid, rev, msg, classtype
-        The "sid", "rev", "msg", and "classtype" methods allow direct access
-        to the rule option of the same name
+  HELPER METHODS FOR VARIOUS OPTIONS
+    sid
+    rev
+    msg
+    classtype
+    gid
+    metadata
+    priority
+        The these methods allow direct access to the rule option of the same
+        name
 
           my $sid = $rule_obj->sid(); # reads the sid of the rule
           $rule_obj->sid($sid); # sets the sid of the rule
           ... etc ...
 
     references
-        The "references" method returns an array reference of the references
-        in the rule. Each reference is an array, in [ 'reference_type' =>
-        'reference_value' ] format. To modify references, use the "opts"
-        method.
+        The "references" method permits read-only access to the "reference:"
+        options in the rule. This is in the form of an array of arrays, with
+        each reference in the format
+
+          [ 'reference_type' => 'reference_value' ]
+
+        To modify references, use the "opts" method to grab all the rule
+        options, modify it to your needs, and use the "opts" method to save
+        your changes back to the rule object.
+
+          $references = $rule->references(); # just the references
+          $no_references = grep { $_->[0] != "reference" } @{ $rule->opts() }; # everything but the references
 
     as_string
         The "as_string" method returns a string that matches the normal
@@ -133,40 +172,47 @@ METHODS
         a rule to an output file that will be read by Snort.
 
 AUTHOR
-        Richard G Harman Jr, "<perl-cpan at richardharman.com>"
+    Richard G Harman Jr, "<perl-cpan at richardharman.com>"
 
 BUGS
-        Please report any bugs or feature requests to "bug-parse-snort at
-        rt.cpan.org", or through the web interface at
-        <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Parse-Snort>. I will
-        be notified, and then you'll automatically be notified of progress
-        on your bug as I make changes.
+    Please report any bugs or feature requests to "bug-parse-snort at
+    rt.cpan.org", or through the web interface at
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Parse-Snort>. I will be
+    notified, and then you' ll automatically be notified of progress on your
+    bug as I make changes.
 
 SUPPORT
-        You can find documentation for this module with the perldoc command.
+    You can find documentation for this module with the perldoc command.
 
-            perldoc Parse::Snort
+        perldoc Parse::Snort
 
-        You can also look for information at:
+    You can also look for information at:
 
-        * AnnoCPAN: Annotated CPAN documentation
-            <http://annocpan.org/dist/Parse-Snort>
+    *   AnnoCPAN: Annotated CPAN documentation
 
-        * CPAN Ratings
-            <http://cpanratings.perl.org/d/Parse-Snort>
+        <http://annocpan.org/dist/Parse-Snort>
 
-        * RT: CPAN's request tracker
-            <http://rt.cpan.org/NoAuth/Bugs.html?Dist=Parse-Snort>
+    *   CPAN Ratings
 
-        * Search CPAN
-            <http://search.cpan.org/dist/Parse-Snort>
+        <http://cpanratings.perl.org/d/Parse-Snort>
+
+    *   RT: CPAN's request tracker
+
+        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=Parse-Snort>
+
+    *   Search CPAN
+
+        <http://search.cpan.org/dist/Parse-Snort>
+
+DEPENDENCIES
+    Test::More, Class::Accessor, List::Util
 
 ACKNOWLEDGEMENTS
-        MagNET #perl for putting up with me :)
+    MagNET #perl for putting up with me :)
 
 COPYRIGHT & LICENSE
-        Copyright 2007 Richard Harman, all rights reserved.
+    Copyright 2007 Richard Harman, all rights reserved.
 
-        This program is free software; you can redistribute it and/or modify
-        it under the same terms as Perl itself.
+    This program is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
 
