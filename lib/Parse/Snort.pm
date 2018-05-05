@@ -326,6 +326,7 @@ sub _single_opt_accessor {
 *gid       = _single_opt_accessor('gid');
 *metadata  = _single_opt_accessor('metadata');
 *priority  = _single_opt_accessor('priority');
+*flow      = _single_opt_accessor('flow');
 
 =back
 
@@ -344,6 +345,8 @@ sub _single_opt_accessor {
 =item gid
 
 =item metadata
+
+=item flow
 
 =item priority
 
