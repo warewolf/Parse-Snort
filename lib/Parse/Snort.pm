@@ -6,7 +6,7 @@ use base qw(Class::Accessor);
 use List::Util qw(first);
 use Carp qw(carp);
 
-our $VERSION = '0.6';
+our $VERSION = '0.7';
 
 =head1 NAME
 
@@ -14,7 +14,7 @@ Parse::Snort - Parse and create Snort rules
 
 =head1 VERSION
 
-Version 0.05
+Version 0.07
 
 =head1 SYNOPSIS
 
