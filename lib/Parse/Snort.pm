@@ -150,6 +150,15 @@ sub parse {
     $rule =~ s/^\s+//;
     $rule =~ s/\s+$//;
 
+    # Rules are distributed without being enabled
+    if ($rule =~ /^#/) {
+        $rule =~ s/^#+\s*//g;
+        $self->state(0);
+    }
+    else {
+        $self->state(1);
+    }
+
     # 20090823 RGH: m/\s+/ instead of m/ /; bug reported by Leon Ward
     my @values = split( m/\s+/, $rule, scalar @RULE_ELEMENTS );    # no critic
 
@@ -160,6 +169,21 @@ sub parse {
 }
 
 =back
+
+=head2 state
+
+The state of the rule: active (1) or commented (0)
+
+=cut
+
+sub state {
+    my ($self, $state) = @_;
+
+    if (defined $state) {
+        $self->{state} = $state;
+    }
+    return $self->{state} // 1;
+}
 
 =head2 METHODS FOR ACCESSING RULE ELEMENTS
 
@@ -382,6 +406,8 @@ sub references {
 
 The C<as_string> method returns a string that matches the normal Snort rule form of the object.  This is what you want to use to write a rule to an output file that will be read by Snort.
 
+=back
+
 =cut
 
 sub as_string {
@@ -401,10 +427,9 @@ sub as_string {
     { $ret .= sprintf( " (%s)", join( " ", map { defined($_->[1]) ? "$_->[0]:$_->[1];" : "$_->[0];" } @{ $self->get('opts') } )); }
 
     #carp sprintf( "Missing required rule element(s): %s", join( " ", @missing )) if (scalar @missing);
-    return ! scalar @missing ? $ret : undef;
+    return undef if @missing;
+    return $self->state ? $ret : "# $ret";
 }
-
-=back
 
 =head1 AUTHOR
 
