@@ -160,11 +160,21 @@ sub parse {
     }
 
     # 20090823 RGH: m/\s+/ instead of m/ /; bug reported by Leon Ward
-    my @values = split( m/\s+/, $rule, scalar @RULE_ELEMENTS );    # no critic
+    my @values = split(m/\s+/, $rule, scalar @RULE_ELEMENTS);    # no critic
 
-    for my $i ( 0 .. $#values ) {
-        my $meth = $RULE_ELEMENTS[$i];
-        $self->$meth( $values[$i] );
+    # Support for 'Decoder and Preprocessor Rules'
+    if ($values[1] eq '(') {
+        $self->{preprocessed} = 1;
+        $self->action($values[0]);
+        shift @values;
+        $self->opts(join(' ', @values));
+    }
+    # Regular rules
+    else {
+        for my $i ( 0 .. $#values ) {
+            my $meth = $RULE_ELEMENTS[$i];
+            $self->$meth( $values[$i] );
+        }
     }
 }
 
@@ -396,10 +406,10 @@ To modify references, use the C<opts> method to grab all the rule options, modif
 
 sub references {
     my ($self) = shift;
-    my @references =
-      map { [ split( m/,/, $_->[1], 2 ) ] }
-      grep { $_->[0] eq "reference" } @{ $self->get('opts') };
-    return \@references;
+    return [
+        map { [split(m/,/, $_->[1], 2)] }
+        grep { $_->[0] eq "reference" } @{ $self->get('opts') }
+    ];
 }
 
 =item as_string
@@ -419,15 +429,22 @@ sub as_string {
     @missing = grep { $_ } map { exists( $self->{$_} ) ? undef : $_ } @RULE_ELEMENTS_REQUIRED;
 
     # stitch together the required bits
-    if (! scalar @missing)
-    { $ret .= sprintf( "%s %s %s %s %s %s %s", @$self{@RULE_ELEMENTS_REQUIRED} ); }
+    if (!scalar @missing) {
+        $ret .= sprintf("%s %s %s %s %s %s %s",
+            @$self{@RULE_ELEMENTS_REQUIRED});
+    }
 
     # tack on opts if they exist
-    if ( defined $self->get('opts') )
-    { $ret .= sprintf( " (%s)", join( " ", map { defined($_->[1]) ? "$_->[0]:$_->[1];" : "$_->[0];" } @{ $self->get('opts') } )); }
+    if (defined $self->get('opts')) {
+        $ret .= sprintf(
+            " (%s)",
+            join(" ",
+                map { defined($_->[1]) ? "$_->[0]:$_->[1];" : "$_->[0];" }
+                    @{ $self->get('opts') })
+        );
+    }
 
-    #carp sprintf( "Missing required rule element(s): %s", join( " ", @missing )) if (scalar @missing);
-    return undef if @missing;
+    return undef if @missing && !$self->{preprocessed};
     return $self->state ? $ret : "# $ret";
 }
 
