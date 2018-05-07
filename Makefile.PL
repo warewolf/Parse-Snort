@@ -9,9 +9,10 @@ WriteMakefile(
     ABSTRACT_FROM       => 'lib/Parse/Snort.pm',
     PL_FILES            => {},
     PREREQ_PM => {
+        'Test::Exception' => 0,
         'Test::More' => 0,
         'Class::Accessor' => 0,
-        'List::Util' => 0,
+        'List::Util' => '1.33',
         'Carp' => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

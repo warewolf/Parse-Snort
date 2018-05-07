@@ -3,8 +3,8 @@ package Parse::Snort;
 use strict;
 use warnings;
 use base qw(Class::Accessor);
-use List::Util qw(first);
-use Carp qw(carp);
+use List::Util qw(first any);
+use Carp qw(carp croak);
 
 our $VERSION = '0.7';
 
@@ -137,11 +137,59 @@ sub _init {
 
 =item parse( $rule_string )
 
-The parse method is what interprets a plain text rule, and populates the rule object.  Beacuse this module does not support the UNIX style line-continuations (backslash at the end of a line) the rule must be all on one line, otherwise the parse will fail in unpredictably interesting and confusing ways.  The parse method tries to interpret the rule from left to right, calling the individual accessor methods for each rule element.  This will overwrite the contents of the object (if any), so if you want to parse multiple rules at once, you will need multiple objects.
+The parse method is what interprets a plain text rule, and populates the
+rule object.  Beacuse this module does not support the UNIX style
+line-continuations (backslash at the end of a line) the rule must be all
+on one line, otherwise the parse will fail in unpredictably interesting
+and confusing ways. The parse method tries to interpret the rule from
+left to right, calling the individual accessor methods for each rule
+element.  This will overwrite the contents of the object (if any), so if
+you want to parse multiple rules at once, you will need multiple
+objects.
+
+Rules will only be parsed if they have one of the following actions defined:
+
+=over
+
+=item alert
+
+generate an alert using the selected alert method, and then
+
+=item log
+
+log the packet
+
+=item pass
+
+ignore the packet
+
+=item activate
+
+alert and then turn on another dynamic rule
+
+=item dynamic
+
+remain idle until activated by an activate rule , then act as a log rule
+
+=item drop
+
+block and log the packet
+
+=item reject
+
+block the packet, log it, and then send a TCP reset if the protocol is
+TCP or an ICMP port unreachable message if the protocol is UDP.
+
+=item sdrop
+
+block the packet but do not log it.
+
+=back
 
   $rule->parse($rule_string);
 
 =cut
+
 
 sub parse {
     my ( $self, $rule ) = @_;
@@ -161,6 +209,10 @@ sub parse {
 
     # 20090823 RGH: m/\s+/ instead of m/ /; bug reported by Leon Ward
     my @values = split( m/\s+/, $rule, scalar @RULE_ELEMENTS );    # no critic
+
+    if (!any { $values[0] eq $_ } @RULE_ACTIONS) {
+        croak "Unable to parse rule, unknown action: " . $values[0];
+    }
 
     for my $i ( 0 .. $#values ) {
         my $meth = $RULE_ELEMENTS[$i];
@@ -193,7 +245,7 @@ You can access the core parts of a rule (action, protocol, source IP, etc) with 
 
 =over 4
 
-=item action 
+=item action
 
 The rule action.  Generally one of the following: C<alert>, C<pass>, C<drop>, C<sdrop>, or C<log>.
 
