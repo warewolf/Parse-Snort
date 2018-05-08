@@ -40,3 +40,101 @@ my $rule_parts_validation = {
 }
 
 1;
+
+__END__;
+
+=head1 NAME
+
+Parse::Snort::Strict - Parse Snort rules with validation of the rules
+
+=head1 DESCRIPTION
+
+Parse Snort rules with validation regarding rule action, protocol and direction
+
+=head1 SYNOPSIS
+
+    use Parse::Snort::Strict;
+    use Try::Tiny;
+
+    my $rule = Parse::Snort::Strict->new();
+    try {
+        $rule->parse($text);
+    }
+    catch {
+        warn "Unable to parse rule: $_";
+    };
+
+=head1 METHODS
+
+=head2 action
+
+You can only have the following actions
+
+=over
+
+=item alert
+
+generate an alert using the selected alert method, and then
+
+=item log
+
+log the packet
+
+=item pass
+
+ignore the packet
+
+=item activate
+
+alert and then turn on another dynamic rule
+
+=item dynamic
+
+remain idle until activated by an activate rule , then act as a log rule
+
+=item drop
+
+block and log the packet
+
+=item reject
+
+block the packet, log it, and then send a TCP reset if the protocol is
+TCP or an ICMP port unreachable message if the protocol is UDP.
+
+=item sdrop
+
+block the packet but do not log it.
+
+=back
+
+=head2 proto
+
+You can only have the following protocols:
+
+=over
+
+=item tcp
+
+=item udp
+
+=item ip
+
+=item icmp
+
+=back
+
+=head2 direction
+
+You can Only have the following directions
+
+=over
+
+=item ->
+
+=item <>
+
+=item <-
+
+=back
+
+=cut
