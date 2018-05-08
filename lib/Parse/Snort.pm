@@ -45,7 +45,6 @@ Version 0.07
 
 =cut 
 
-our @RULE_ACTIONS           = qw/ alert pass drop sdrop log activate dynamic reject /;
 our @RULE_ELEMENTS_REQUIRED = qw/ action proto src src_port direction dst dst_port /;
 our @RULE_ELEMENTS = ( @RULE_ELEMENTS_REQUIRED, 'opts' );
 
@@ -57,7 +56,7 @@ __PACKAGE__->mk_accessors(@RULE_ELEMENTS_REQUIRED);
 
 These are the object methods that can be used to read or modify any part of a Snort rule.  B<Please note: None of these methods provide any sort of input validation to make sure that the rule makes sense, or can be parsed at all by Snort.>  
 
-=for comment If input validation is required, check out the L<Parse::Snort::Strict> module.
+If input validation is required, check out the L<Parse::Snort::Strict> module.
 
 =over 4
 
