@@ -25,7 +25,7 @@ my $rule_parts_validation = {
       my ($self,$value) = @_;
 
       # do validation
-      croak "$value is not a valid rule $part" unless (any { $value eq $_ } @{ $value_ref });
+      croak "Invalid rule $part: '$value'" unless (any { $value eq $_ } @{ $value_ref });
 
       # call parent's method for value setting
       $self->$method($value);

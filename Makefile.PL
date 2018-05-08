@@ -11,8 +11,9 @@ WriteMakefile(
     PREREQ_PM => {
         'Test::More' => 0,
         'Class::Accessor' => 0,
-        'List::Util' => 0,
+        'List::Util' => 1.33,
         'Carp' => 0,
+        'Sub::Util' => 1.40,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Parse-Snort-*' },

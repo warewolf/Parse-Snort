@@ -2,6 +2,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Exception;
 use Parse::Snort::Strict;
 
 my $text_rule
@@ -67,13 +68,18 @@ $obj_1->parse($text_rule);
 is_deeply($obj_1, $rule_data, "parse text rule");
 
 # individually call the separate methods that have validation built in -- because the textual rule parsing ultimately calls these methods, this is good coverage.
-isnt(eval { $obj_1->action("frodo") } ,"frodo","set invalid action");
-is(eval { $obj_1->action("drop") } ,"drop","set valid action");
 
-isnt(eval { $obj_1->proto("pippin") } ,"pippin","set invalid proto");
-is(eval { $obj_1->proto("tcp") } ,"tcp","set valid proto");
+my $rule_parts_validation = {
+  action => [qw( alert pass drop sdrop log activate dynamic reject )],
+  proto => [qw( tcp udp ip icmp )],
+  direction => [qw( -> <> <- )],
+};
 
-isnt(eval { $obj_1->direction("gollum") } ,"gollum","set invalid direction");
-is(eval { $obj_1->direction("->") } ,"->","set valid direction");
+while (my ($part,$value_ref) = each %$rule_parts_validation) {
+  foreach my $value (@$value_ref) {
+    is($obj_1->$part($value),$value,"set $part to valid value $value");
+  }
+  throws_ok(sub { $obj_1->$part("frodo") },qr/^Invalid rule $part: 'frodo'/,"set $part to invalid value $part" );
+}
 
 done_testing();
