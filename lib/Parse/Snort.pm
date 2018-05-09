@@ -43,7 +43,7 @@ Version 0.07
     my $rule_string = $rule->as_string;
 );
 
-=cut 
+=cut
 
 our @RULE_ELEMENTS_REQUIRED = qw/ action proto src src_port direction dst dst_port /;
 our @RULE_ELEMENTS = ( @RULE_ELEMENTS_REQUIRED, 'opts' );
@@ -58,9 +58,7 @@ These are the object methods that can be used to read or modify any part of a Sn
 
 If input validation is required, check out the L<Parse::Snort::Strict> module.
 
-=over 4
-
-=item new ()
+=head2 new ()
 
 Create a new C<Parse::Snort> object, and return it.  There are a couple of options when creating the object:
 
@@ -68,7 +66,7 @@ Create a new C<Parse::Snort> object, and return it.  There are a couple of optio
 
 =item new ( )
 
-Create an unpopulated object, that can be filled in using the individual rule element methods, or can be populated with the L<< parse|/"PARSE" >> method.
+Create an unpopulated object, that can be filled in using the individual rule element methods, or can be populated with the L<< parse|Parse::Snort/"PARSE" >> method.
 
 =item new ( $rule_string )
 
@@ -81,21 +79,21 @@ Create an object based on a plain text Snort rule, all on one line.  This module
 
 Create an object baesd on a prepared hash reference similar to the internal strucutre of the L<Parse::Snort> object.
 
-  $rule_element_hashref = {
-    action => 'alert',
-    proto => 'tcp',
-    src => '$EXTERNAL_NET', src_port => 'any',
-    direction => '->',
-    dst => '$HOME_NET', dst_port => 'any',
-    opts => [
-    	[ 'msg' => '"perl 6 download detected\; may the world rejoice!"' ],
-    	[ 'depth' => 150 ],
-    	[ 'offset' => 0 ].
-    	[ 'content' => 'perl-6.0.0' ],
-    	[ 'nocase' ],
-    ],
-      
-  };
+    $rule_element_hashref = {
+        action    => 'alert',
+        proto     => 'tcp',
+        src       => '$EXTERNAL_NET',
+        src_port  => 'any',
+        direction => '->',
+        dst       => '$HOME_NET',
+        dst_port  => 'any',
+        opts      => [
+            ['msg'    => '"perl 6 download detected\; may the world rejoice!"'],
+            ['depth'  => 150],
+            ['offset' => 0] . ['content' => 'perl-6.0.0'],
+            ['nocase'],
+        ],
+    };
 
 =back
 
@@ -112,10 +110,10 @@ sub new {
 }
 
 =for comment
+
 The _init method is called by the new method, to figure out what sort of data was passed to C<new()>.  If necessary, it calls $self->parse(), individual element accessor methods, or simply returns $self.
 
 =cut
-
 
 sub _init {
     my ( $self, $data ) = @_;
@@ -134,7 +132,7 @@ sub _init {
     return $self;
 }
 
-=item parse( $rule_string )
+=head2 parse( $rule_string )
 
 The parse method is what interprets a plain text rule, and populates the rule object.  Beacuse this module does not support the UNIX style line-continuations (backslash at the end of a line) the rule must be all on one line, otherwise the parse will fail in unpredictably interesting and confusing ways.  The parse method tries to interpret the rule from left to right, calling the individual accessor methods for each rule element.  This will overwrite the contents of the object (if any), so if you want to parse multiple rules at once, you will need multiple objects.
 
@@ -177,8 +175,6 @@ sub parse {
     }
 }
 
-=back
-
 =head2 state
 
 The state of the rule: active (1) or commented (0)
@@ -191,7 +187,10 @@ sub state {
     if (defined $state) {
         $self->{state} = $state;
     }
-    return $self->{state} // 1;
+    if (!defined $self->{state}) {
+        return 1;
+    }
+    return $self->{state};
 }
 
 =head2 METHODS FOR ACCESSING RULE ELEMENTS
