@@ -6,7 +6,7 @@ use base qw(Class::Accessor);
 use List::Util qw(first);
 use Carp qw(carp);
 
-our $VERSION = '0.7';
+our $VERSION = '0.8';
 
 =head1 NAME
 

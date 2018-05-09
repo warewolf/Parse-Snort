@@ -7,6 +7,8 @@ use Carp qw(croak);
 use List::Util qw(any);
 use Sub::Util qw(set_subname);
 
+our $VERSION = "0.8";
+
 # valid values for rule parts
 my $rule_parts_validation = {
   action => [qw( alert pass drop sdrop log activate dynamic reject )],
@@ -39,6 +41,8 @@ my $rule_parts_validation = {
   use strict qw(refs);
 }
 
+# TODO: validate formatting of src/dst address and port, make sure they look like $VARIABLEs or [a:range]
+
 1;
 
 __END__;
@@ -49,7 +53,7 @@ Parse::Snort::Strict - Parse Snort rules with validation of the rules
 
 =head1 DESCRIPTION
 
-Parse Snort rules with validation regarding rule action, protocol and direction
+Parse Snort rules with validation regarding rule action, protocol and direction.  Look at L<Parse::Snort> for more usage detail, as this is a subclass of it.
 
 =head1 SYNOPSIS
 
