@@ -133,11 +133,11 @@ You can Only have the following directions
 
 =over
 
-=item ->
+=item C<< -> >>
 
-=item <>
+=item C<< <> >>
 
-=item <-
+=item C<< <- >>
 
 =back
 

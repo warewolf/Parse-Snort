@@ -219,7 +219,7 @@ The source port for the rule.  Generally a static port, or a contigious range of
 
 =item direction
 
-The direction of the rule.  One of the following: C<->> C<<>> or C<<->.
+The direction of the rule.  One of the following: C<< -> >> C<< <> >> or C<< <- >>.
 
 =item dst
 
