@@ -6,7 +6,7 @@ use base qw(Class::Accessor);
 use List::Util qw(first);
 use Carp qw(carp);
 
-our $VERSION = '0.8';
+our $VERSION = '0.9';
 
 =head1 NAME
 
@@ -14,7 +14,7 @@ Parse::Snort - Parse and create Snort rules
 
 =head1 VERSION
 
-Version 0.07
+Version 0.9
 
 =head1 SYNOPSIS
 
@@ -25,16 +25,16 @@ Version 0.07
       proto => 'tcp',
       src => '$HOME_NET', src_port => 'any',
       direction => '->'
-      dst =>'$EXTERNAL_NET', dst_port => 'any'
+      dst => '$EXTERNAL_NET', dst_port => 'any'
     );
 
     $rule->action("pass");
 
     $rule->opts(
-	[ 'depth' => 50 ],
-	[ 'offset' => 0 ],
-	[ 'content' => "perl6" ],
-	[ "nocase" ]
+      [ 'depth' => 50 ],
+      [ 'offset' => 0 ],
+      [ 'content' => "perl6" ],
+      [ "nocase" ]
     );
 
     my $rule = Parse::Snort->new();
@@ -88,9 +88,10 @@ Create an object baesd on a prepared hash reference similar to the internal stru
         dst       => '$HOME_NET',
         dst_port  => 'any',
         opts      => [
-            ['msg'    => '"perl 6 download detected\; may the world rejoice!"'],
-            ['depth'  => 150],
-            ['offset' => 0] . ['content' => 'perl-6.0.0'],
+            ['msg'     => '"perl 6 download detected\; may the world rejoice!"'],
+            ['depth'   => 150],
+            ['offset'  => 0],
+            ['content' => 'perl-6.0.0'],
             ['nocase'],
         ],
     };
@@ -197,7 +198,9 @@ sub state {
 
 You can access the core parts of a rule (action, protocol, source IP, etc) with the method of their name.  These are read/write L<Class::Accessor> accessors.  If you want to read the value, don't pass an argument.  If you want to set the value, pass in the new value.  In either case it returns the current value, or undef if the value has not been set yet.
 
-=for comment Need to figure out "truth" again in perl sense, do I simply "return;" or "return undef" if the value doesn't exist?  For Parse::Snort::Strict, I need to have two things: 1) make it known to the user that the rule failed to parse, 2) which (may?) be a different meaning than the rule element being empty/undefined.
+=for comment
+
+Need to figure out "truth" again in perl sense, do I simply "return;" or "return undef" if the value doesn't exist?  For Parse::Snort::Strict, I need to have two things: 1) make it known to the user that the rule failed to parse, 2) which (may?) be a different meaning than the rule element being empty/undefined.
 
 =over 4
 
@@ -242,7 +245,7 @@ The opts method can be used to read existing options of a parsed rule, or set th
   $opts_array_ref = [
        [ 'msg' => '"perl 6 download detected\; may the world rejoice!"' ],
        [ 'depth' => 150 ],
-       [ 'offset' => 0 ].
+       [ 'offset' => 0 ],
        [ 'content' => 'perl-6.0.0' ],
        [ 'nocase' ],
   ]
@@ -398,7 +401,7 @@ To modify references, use the C<opts> method to grab all the rule options, modif
 
 
   $references = $rule->references(); # just the references
-  $no_references = grep { $_->[0] != "reference" } @{ $rule->opts() }; # everything but the references
+  $no_references = grep { $_->[0] ne "reference" } @{ $rule->opts() }; # everything but the references
 
 =cut 
 
@@ -487,7 +490,7 @@ L<http://search.cpan.org/dist/Parse-Snort>
 
 =head1 DEPENDENCIES
 
-L<Test::More>, L<Class::Accessor>, L<List::Util>
+L<Class::Accessor>, L<List::Util>, L<Sub::Util>, L<Carp>, and L<Test::More>, L<Test::Exception> for testing.
 
 =head1 ACKNOWLEDGEMENTS
 
