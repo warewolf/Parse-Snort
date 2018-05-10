@@ -110,12 +110,6 @@ sub new {
     $self->_init($data);
 }
 
-=for comment
-
-The _init method is called by the new method, to figure out what sort of data was passed to C<new()>.  If necessary, it calls $self->parse(), individual element accessor methods, or simply returns $self.
-
-=cut
-
 sub _init {
     my ( $self, $data ) = @_;
 
@@ -197,10 +191,6 @@ sub state {
 =head2 METHODS FOR ACCESSING RULE ELEMENTS
 
 You can access the core parts of a rule (action, protocol, source IP, etc) with the method of their name.  These are read/write L<Class::Accessor> accessors.  If you want to read the value, don't pass an argument.  If you want to set the value, pass in the new value.  In either case it returns the current value, or undef if the value has not been set yet.
-
-=for comment
-
-Need to figure out "truth" again in perl sense, do I simply "return;" or "return undef" if the value doesn't exist?  For Parse::Snort::Strict, I need to have two things: 1) make it known to the user that the rule failed to parse, 2) which (may?) be a different meaning than the rule element being empty/undefined.
 
 =over 4
 
@@ -417,7 +407,6 @@ sub references {
 
 The C<as_string> method returns a string that matches the normal Snort rule form of the object.  This is what you want to use to write a rule to an output file that will be read by Snort.
 
-=back
 
 =cut
 
@@ -447,6 +436,44 @@ sub as_string {
 
     return undef if @missing && !$self->{preprocessed};
     return $self->state ? $ret : "# $ret";
+}
+
+=pod
+
+=item clone
+
+Returns a clone of the current rule object.
+
+=cut
+
+# poor man's deep cloning.  This will have to be maintained if the internal structure ever changes.
+sub clone {
+    my $self = shift;
+
+    # initial shallow copy
+    my $copy = bless { %$self }, ref $self;
+
+    # deeper copy, for opts
+    if ($self->opts()) {
+      $copy->opts( [ map { [ @$_ ] } @{ $self->opts } ]);
+    }
+    return $copy;
+}
+
+=pod
+
+=item reset
+
+Resets the internal state (deletes it!) of the current rule object, and returns the rule object itself.  Useful for parsing multiple rules, one after another.  Just call C<< $rule->reset() >> after you're done with the current rule, and before you C<< $rule->parse() >> or set new values via the accessor methods.
+
+=back
+
+=cut
+
+sub reset {
+  my $self = shift;
+  delete $self->{$_} for keys %$self;
+  return $self;
 }
 
 =head1 AUTHOR
