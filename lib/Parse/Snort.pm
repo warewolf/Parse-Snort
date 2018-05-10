@@ -490,7 +490,7 @@ L<http://search.cpan.org/dist/Parse-Snort>
 
 =head1 DEPENDENCIES
 
-L<Class::Accessor>, L<List::Util>, L<Sub::Util>, L<Carp>, and L<Test::More>, L<Test::Exception> for testing.
+L<Class::Accessor>, L<List::Util>, L<Sub::Util>, L<Carp>
 
 =head1 ACKNOWLEDGEMENTS
 
