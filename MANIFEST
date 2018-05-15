@@ -1,10 +1,10 @@
-.mailmap
 Changes
 lib/Parse/Snort.pm
 lib/Parse/Snort/Strict.pm
 Makefile.PL
 MANIFEST
-META.yml			# Will be created by "make dist"
+MANIFEST.SKIP
+META.yml
 README
 t/01_parse_text_rule.t
 t/02_parse_and_modify.t

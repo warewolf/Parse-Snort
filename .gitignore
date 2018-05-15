@@ -1,3 +1,6 @@
 Makefile
 Makefile.old
 *.sw?
+MYMETA.*
+Parse-Snort-*.tar.gz
+Parse-Snort-*/
